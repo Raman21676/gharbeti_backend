@@ -1,2 +1,24 @@
-.env
+# Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables (NEVER push these!)
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
