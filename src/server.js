@@ -18,8 +18,19 @@ const errorHandler = require('./middleware/errorHandler');
 const connectDB = require('./config/database');
 const { initializeSocket } = require('./utils/socket');
 
+// Import models to ensure indexes are created
+const Post = require('./models/Post');
+
 // Connect to database
-connectDB();
+connectDB().then(async () => {
+  // Ensure TTL indexes are created
+  try {
+    await Post.syncIndexes();
+    console.log('MongoDB indexes synchronized');
+  } catch (error) {
+    console.error('Error syncing indexes:', error.message);
+  }
+});
 
 const app = express();
 const server = http.createServer(app);
