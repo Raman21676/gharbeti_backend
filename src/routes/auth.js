@@ -4,6 +4,7 @@ const { protect, uploadProfileImage } = require('../middleware/auth');
 const {
   sendOTP,
   verifyOTP,
+  resendOTP,
   completeProfile,
   getMe,
   updateProfile,
@@ -16,6 +17,7 @@ router.post('/verify-otp', verifyOTP);
 
 // Protected routes
 router.get('/me', protect, getMe);
+router.post('/resend-otp', protect, resendOTP);
 router.post('/complete-profile', protect, completeProfile);
 router.put('/profile', protect, uploadProfileImage, updateProfile);
 router.post('/logout', protect, logout);

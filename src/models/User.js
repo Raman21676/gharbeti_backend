@@ -21,6 +21,20 @@ const userSchema = new mongoose.Schema(
       trim: true,
       sparse: true,
     },
+    nickname: {
+      type: String,
+      trim: true,
+      maxlength: [50, 'Nickname cannot exceed 50 characters'],
+    },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other'],
+    },
+    age: {
+      type: Number,
+      min: [18, 'You must be at least 18 years old'],
+      max: [120, 'Invalid age'],
+    },
     profileImage: {
       type: String,
       default: null,

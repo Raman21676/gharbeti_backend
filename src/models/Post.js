@@ -99,7 +99,7 @@ const postSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       default: function () {
-        return new Date(Date.now() + 15 * 24 * 60 * 60 * 1000); // 15 days
+        return new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days
       },
     },
     dealCompletedAt: {
@@ -144,6 +144,9 @@ postSchema.index({ createdAt: -1 });
 postSchema.index({ price: 1 });
 postSchema.index({ type: 1 });
 
+// TTL index for automatic deletion of expired posts
+postSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 // Virtual for days remaining
 postSchema.virtual('daysRemaining').get(function () {
   const now = new Date();
@@ -154,7 +157,7 @@ postSchema.virtual('daysRemaining').get(function () {
 // Method to renew post
 postSchema.methods.renew = function () {
   this.status = 'active';
-  this.expiresAt = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
+  this.expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // 60 days
   return this.save();
 };
 

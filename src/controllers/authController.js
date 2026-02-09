@@ -132,6 +132,62 @@ exports.sendOTP = async (req, res) => {
   }
 };
 
+// Resend OTP for email verification
+exports.resendOTP = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is already verified',
+      });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.otp = {
+      code: otp,
+      expiresAt: otpExpires,
+    };
+    await user.save();
+
+    // Send OTP via email
+    try {
+      await sendEmailOTP(user.email, otp);
+      console.log(`OTP resent to ${user.email}: ${otp}`);
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+      console.log(`[DEV] OTP for ${user.email}: ${otp}`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully to your email',
+      data: {
+        email: user.email,
+        ...(process.env.NODE_ENV === 'development' && { otp }),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // Verify OTP
 exports.verifyOTP = async (req, res) => {
   try {
@@ -198,8 +254,46 @@ exports.verifyOTP = async (req, res) => {
 // Complete Profile
 exports.completeProfile = async (req, res) => {
   try {
-    const { name, phone, role } = req.body;
+    const { name, nickname, phone, gender, age, role } = req.body;
     const userId = req.user.id;
+
+    // Validation
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required',
+      });
+    }
+
+    if (!phone || phone.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required',
+      });
+    }
+
+    // Validate Nepali phone number (10 digits)
+    const phoneRegex = /^9[0-9]{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number. Must be a 10-digit Nepali number starting with 9',
+      });
+    }
+
+    if (!age || age < 18 || age > 120) {
+      return res.status(400).json({
+        success: false,
+        message: 'Age must be between 18 and 120',
+      });
+    }
+
+    if (gender && !['Male', 'Female', 'Other'].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Gender must be Male, Female, or Other',
+      });
+    }
 
     const user = await User.findById(userId);
 
@@ -211,8 +305,11 @@ exports.completeProfile = async (req, res) => {
     }
 
     // Update fields
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
+    user.name = name.trim();
+    if (nickname) user.nickname = nickname.trim();
+    user.phone = phone.trim();
+    if (gender) user.gender = gender;
+    user.age = parseInt(age);
     if (role && ['tenant', 'owner'].includes(role)) user.role = role;
 
     await user.save();
